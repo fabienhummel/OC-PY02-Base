@@ -1,4 +1,4 @@
-# OC-PY02-Bis - Scraper Books to Scrape
+# OC-PY02-Base - Scraper Books to Scrape
 
 Projet réalisé dans le cadre du parcours OpenClassrooms **Développeur Python**.
 
