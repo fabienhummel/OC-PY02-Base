@@ -35,7 +35,7 @@ image_url
 ## Structure du projet
 
 ```text
-OC-PY02-Bis/
+OC-PY02-Base/
 ├── export/
 │   └── .gitkeep
 ├── mes_fonctions.py
@@ -52,13 +52,13 @@ Le dossier `export/` est présent dans le projet, mais son contenu généré est
 Cloner le dépôt :
 
 ```bash
-git clone https://github.com/fabienhummel/OC-PY02-Bis.git
+git clone https://github.com/fabienhummel/OC-PY02-Base.git
 ```
 
 Entrer dans le dossier du projet :
 
 ```bash
-cd OC-PY02-Bis
+cd OC-PY02-Base
 ```
 
 Créer un environnement virtuel :
