@@ -9,6 +9,8 @@ from pathlib import Path
 from datetime import datetime
 from pathlib import Path
 
+from urllib.parse import urlparse
+
 
 
 
@@ -276,50 +278,6 @@ def sauvegarder_infos_livres_csv(infos_livres, dossier_export, nom_fichier):
 
     return chemin_fichier
 
-#############################################################################################
-def sauvegarder_csv_par_categorie(liens_categories, dossier_export="export"):
-    """
-    Parcourt toutes les catégories et crée :
-    - un dossier export à la racine ;
-    - un sous-dossier daté ;
-    - un dossier par catégorie ;
-    - un fichier CSV par catégorie.
-
-    Args:
-        liens_categories (list): Liste des URL des catégories.
-        dossier_export (str): Dossier racine des exports.
-
-    Returns:
-        list: Liste des chemins des fichiers CSV créés.
-    """
-    fichiers_csv_crees = []
-
-    date_heure = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    dossier_export_racine = Path(dossier_export)
-    dossier_export_date = dossier_export_racine / f"export_{date_heure}"
-
-    for lien_categorie in liens_categories:
-        liens_livres_dune_categorie = passer_toutes_les_pages_dune_categorie(lien_categorie)
-
-        infos_livres = extraire_infos_tous_livres(liens_livres_dune_categorie)
-
-        if infos_livres:
-            nom_categorie = infos_livres[0]["category"]
-            nom_categorie_nettoye = nettoyer_nom_fichier(nom_categorie)
-
-            dossier_categorie = dossier_export_date / nom_categorie_nettoye
-            nom_fichier_csv = nom_categorie_nettoye + ".csv"
-
-            chemin_csv = sauvegarder_infos_livres_csv(
-                infos_livres,
-                dossier_categorie,
-                nom_fichier_csv
-            )
-
-            fichiers_csv_crees.append(chemin_csv)
-
-    return fichiers_csv_crees
 
 ##########################################################################################
 def nettoyer_nom_fichier(texte):
@@ -372,3 +330,109 @@ def extraire_valeur_tableau(soup, libelle):
             return cellule_valeur.get_text(strip=True)
 
     return ""
+
+##########################################################################################
+def telecharger_image(image_url, dossier_images, nom_image):
+    """
+    Télécharge une image dans un dossier donné.
+
+    Args:
+        image_url (str): URL complète de l'image.
+        dossier_images (Path): Dossier où sauvegarder l'image.
+        nom_image (str): Nom du fichier image.
+
+    Returns:
+        Path: Chemin de l'image téléchargée ou None en cas d'erreur.
+    """
+    try:
+        dossier_images.mkdir(parents=True, exist_ok=True)
+
+        chemin_image = dossier_images / nom_image
+
+        reponse = requests.get(image_url)
+        reponse.raise_for_status()
+
+        with open(chemin_image, "wb") as fichier_image:
+            fichier_image.write(reponse.content)
+
+        return chemin_image
+
+    except requests.exceptions.RequestException as erreur:
+        print(f"Erreur lors du téléchargement de l'image : {erreur}")
+        return None
+    
+###########################################################################################
+def telecharger_images_categorie(infos_livres, dossier_categorie):
+    """
+    Télécharge les images des livres d'une catégorie.
+
+    Args:
+        infos_livres (list): Liste de dictionnaires contenant les informations des livres.
+        dossier_categorie (Path): Dossier de la catégorie.
+
+    Returns:
+        list: Liste des chemins des images téléchargées.
+    """
+    images_telechargees = []
+    dossier_images = dossier_categorie / "images"
+
+    for livre in infos_livres:
+        image_url = livre["image_url"]
+        upc = livre["universal_product_code"]
+
+        extension = Path(urlparse(image_url).path).suffix
+        nom_image = upc + extension
+
+        chemin_image = telecharger_image(image_url, dossier_images, nom_image)
+
+        if chemin_image:
+            images_telechargees.append(chemin_image)
+
+    return images_telechargees
+
+############################################################################################
+def sauvegarder_csv_et_images_par_categorie(liens_categories, dossier_export="export"):
+    """
+    Parcourt toutes les catégories et crée :
+    - un dossier d'export daté ;
+    - un dossier par catégorie ;
+    - un fichier CSV par catégorie ;
+    - un dossier images par catégorie avec les images des livres.
+
+    Args:
+        liens_categories (list): Liste des URL des catégories.
+        dossier_export (str): Dossier racine des exports.
+
+    Returns:
+        list: Liste des chemins des fichiers CSV créés.
+    """
+    fichiers_csv_crees = []
+
+    date_heure = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    dossier_export_racine = Path(dossier_export)
+    dossier_export_date = dossier_export_racine / f"export_{date_heure}"
+
+    for lien_categorie in liens_categories:
+        liens_livres_dune_categorie = passer_toutes_les_pages_dune_categorie(lien_categorie)
+
+        infos_livres = extraire_infos_tous_livres(liens_livres_dune_categorie)
+
+        if infos_livres:
+            nom_categorie = infos_livres[0]["category"]
+            nom_categorie_nettoye = nettoyer_nom_fichier(nom_categorie)
+
+            dossier_categorie = dossier_export_date / nom_categorie_nettoye
+            nom_fichier_csv = nom_categorie_nettoye + ".csv"
+
+            chemin_csv = sauvegarder_infos_livres_csv(
+                infos_livres,
+                dossier_categorie,
+                nom_fichier_csv
+            )
+
+            telecharger_images_categorie(infos_livres, dossier_categorie)
+
+            fichiers_csv_crees.append(chemin_csv)
+
+    return fichiers_csv_crees
