@@ -3,6 +3,9 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 
+import csv
+from pathlib import Path
+
 
 
 
@@ -127,3 +130,119 @@ def passer_toutes_les_pages_dune_categorie(lien_categorie):
             page_courante = None
 
     return liens_livres_dune_categorie
+
+########################################################################################
+def extraire_infos_livre(lien_livre):
+    """
+    Extrait les informations d'un livre depuis l'URL de sa page.
+
+    Args:
+        lien_livre (str): URL de la page du livre.
+
+    Returns:
+        dict: Dictionnaire contenant les informations du livre.
+    """
+    try:
+        page = requests.get(lien_livre)
+        page.raise_for_status()
+
+        soup = BeautifulSoup(page.content, "html.parser")
+
+        upc = soup.select_one('th:-soup-contains("UPC") + td').text
+        titre = soup.select_one("h1").text
+        prix_ttc = soup.select_one('th:-soup-contains("Price (incl. tax)") + td').text
+        prix_ht = soup.select_one('th:-soup-contains("Price (excl. tax)") + td').text
+        disponibilite = soup.select_one('th:-soup-contains("Availability") + td').text
+        nombre_disponible = "".join(filter(str.isdigit, disponibilite))
+        description = soup.select_one("#product_description ~ p").text
+        categorie = soup.select("ul.breadcrumb li a")[-1].text
+        
+        conversion_notes = {
+            "One": 1,
+            "Two": 2,
+            "Three": 3,
+            "Four": 4,
+            "Five": 5,
+        }
+
+        note_texte = soup.select_one(".star-rating")["class"][1]
+        note = conversion_notes.get(note_texte)
+
+        image_relative = soup.select_one(".carousel-inner img")["src"]
+        image_url = urljoin(lien_livre, image_relative)
+
+        return {
+            "product_page_url": lien_livre,
+            "universal_product_code": upc,
+            "title": titre,
+            "price_including_tax": prix_ttc,
+            "price_excluding_tax": prix_ht,
+            "number_available": nombre_disponible,
+            "product_description": description,
+            "category": categorie,
+            "review_rating": note,
+            "image_url": image_url,
+        }
+
+    except requests.exceptions.RequestException as erreur:
+        print(f"Erreur lors de la récupération du livre : {erreur}")
+        return None
+
+#########################################################################################
+def extraire_infos_tous_livres(liens_livres_toutes_categories):
+    """
+    Extrait les informations de tous les livres à partir d'une liste d'URL.
+
+    Args:
+        liens_livres_toutes_categories (list): Liste des URL des pages de livres.
+
+    Returns:
+        list: Liste de dictionnaires contenant les informations de tous les livres.
+    """
+    infos_livres = []
+
+    for lien_livre in liens_livres_toutes_categories:
+        infos_livre = extraire_infos_livre(lien_livre)
+
+        if infos_livre:
+            infos_livres.append(infos_livre)
+
+    return infos_livres
+
+#########################################################################################
+def sauvegarder_infos_livres_csv(infos_livres, dossier_export, nom_fichier):
+    """
+    Sauvegarde les informations des livres dans un fichier CSV.
+
+    Args:
+        infos_livres (list): Liste de dictionnaires contenant les informations des livres.
+        dossier_export (str): Nom du dossier où enregistrer le fichier CSV.
+        nom_fichier (str): Nom du fichier CSV à créer.
+
+    Returns:
+        Path: Chemin du fichier CSV créé.
+    """
+    chemin_dossier = Path(dossier_export)
+    chemin_dossier.mkdir(parents=True, exist_ok=True)
+
+    chemin_fichier = chemin_dossier / nom_fichier
+
+    entetes = [
+        "product_page_url",
+        "universal_product_code",
+        "title",
+        "price_including_tax",
+        "price_excluding_tax",
+        "number_available",
+        "product_description",
+        "category",
+        "review_rating",
+        "image_url",
+    ]
+
+    with open(chemin_fichier, "w", newline="", encoding="utf-8-sig") as fichier_csv:
+        writer = csv.DictWriter(fichier_csv, fieldnames=entetes)
+        writer.writeheader()
+        writer.writerows(infos_livres)
+
+    return chemin_fichier
