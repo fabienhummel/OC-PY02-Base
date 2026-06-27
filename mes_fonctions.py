@@ -6,6 +6,9 @@ from bs4 import BeautifulSoup
 import csv
 from pathlib import Path
 
+from datetime import datetime
+from pathlib import Path
+
 
 
 
@@ -148,15 +151,23 @@ def extraire_infos_livre(lien_livre):
 
         soup = BeautifulSoup(page.content, "html.parser")
 
-        upc = soup.select_one('th:-soup-contains("UPC") + td').text
-        titre = soup.select_one("h1").text
-        prix_ttc = soup.select_one('th:-soup-contains("Price (incl. tax)") + td').text
-        prix_ht = soup.select_one('th:-soup-contains("Price (excl. tax)") + td').text
-        disponibilite = soup.select_one('th:-soup-contains("Availability") + td').text
+        upc = extraire_valeur_tableau(soup, "UPC")
+        prix_ttc = extraire_valeur_tableau(soup, "Price (incl. tax)")
+        prix_ht = extraire_valeur_tableau(soup, "Price (excl. tax)")
+        disponibilite = extraire_valeur_tableau(soup, "Availability")
+
+        titre = extraire_texte(soup.select_one("h1"))
+        description = extraire_texte(soup.select_one("#product_description ~ p"))
+
         nombre_disponible = "".join(filter(str.isdigit, disponibilite))
-        description = soup.select_one("#product_description ~ p").text
-        categorie = soup.select("ul.breadcrumb li a")[-1].text
-        
+
+        fil_ariane = soup.select("ul.breadcrumb li a")
+
+        if len(fil_ariane) >= 3:
+            categorie = fil_ariane[-1].get_text(strip=True)
+        else:
+            categorie = ""
+
         conversion_notes = {
             "One": 1,
             "Two": 2,
@@ -165,11 +176,22 @@ def extraire_infos_livre(lien_livre):
             "Five": 5,
         }
 
-        note_texte = soup.select_one(".star-rating")["class"][1]
-        note = conversion_notes.get(note_texte)
+        bloc_note = soup.select_one(".star-rating")
 
-        image_relative = soup.select_one(".carousel-inner img")["src"]
-        image_url = urljoin(lien_livre, image_relative)
+        if bloc_note:
+            classes_note = bloc_note.get("class", [])
+            note_texte = classes_note[1]
+            note = conversion_notes.get(note_texte, "")
+        else:
+            note = ""
+
+        image = soup.select_one(".carousel-inner img")
+
+        if image:
+            image_relative = image.get("src")
+            image_url = urljoin(lien_livre, image_relative)
+        else:
+            image_url = ""
 
         return {
             "product_page_url": lien_livre,
@@ -220,10 +242,17 @@ def sauvegarder_infos_livres_csv(infos_livres, dossier_export, nom_fichier):
         nom_fichier (str): Nom du fichier CSV à créer.
 
     Returns:
-        Path: Chemin du fichier CSV créé.
+        Path: Chemin du fichier CSV créé ou None si aucune donnée.
     """
+    if not infos_livres:
+        print("Aucune information de livre à sauvegarder.")
+        return None
+
     chemin_dossier = Path(dossier_export)
     chemin_dossier.mkdir(parents=True, exist_ok=True)
+
+    if not nom_fichier.endswith(".csv"):
+        nom_fichier = nom_fichier + ".csv"
 
     chemin_fichier = chemin_dossier / nom_fichier
 
@@ -246,3 +275,100 @@ def sauvegarder_infos_livres_csv(infos_livres, dossier_export, nom_fichier):
         writer.writerows(infos_livres)
 
     return chemin_fichier
+
+#############################################################################################
+def sauvegarder_csv_par_categorie(liens_categories, dossier_export="export"):
+    """
+    Parcourt toutes les catégories et crée :
+    - un dossier export à la racine ;
+    - un sous-dossier daté ;
+    - un dossier par catégorie ;
+    - un fichier CSV par catégorie.
+
+    Args:
+        liens_categories (list): Liste des URL des catégories.
+        dossier_export (str): Dossier racine des exports.
+
+    Returns:
+        list: Liste des chemins des fichiers CSV créés.
+    """
+    fichiers_csv_crees = []
+
+    date_heure = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    dossier_export_racine = Path(dossier_export)
+    dossier_export_date = dossier_export_racine / f"export_{date_heure}"
+
+    for lien_categorie in liens_categories:
+        liens_livres_dune_categorie = passer_toutes_les_pages_dune_categorie(lien_categorie)
+
+        infos_livres = extraire_infos_tous_livres(liens_livres_dune_categorie)
+
+        if infos_livres:
+            nom_categorie = infos_livres[0]["category"]
+            nom_categorie_nettoye = nettoyer_nom_fichier(nom_categorie)
+
+            dossier_categorie = dossier_export_date / nom_categorie_nettoye
+            nom_fichier_csv = nom_categorie_nettoye + ".csv"
+
+            chemin_csv = sauvegarder_infos_livres_csv(
+                infos_livres,
+                dossier_categorie,
+                nom_fichier_csv
+            )
+
+            fichiers_csv_crees.append(chemin_csv)
+
+    return fichiers_csv_crees
+
+##########################################################################################
+def nettoyer_nom_fichier(texte):
+    """
+    Nettoie un texte pour l'utiliser comme nom de dossier ou de fichier.
+
+    Args:
+        texte (str): Texte à nettoyer.
+
+    Returns:
+        str: Texte nettoyé.
+    """
+    texte = texte.lower()
+    texte = texte.replace(" ", "_")
+
+    caracteres_valides = []
+
+    for caractere in texte:
+        if caractere.isalnum() or caractere in ["_", "-"]:
+            caracteres_valides.append(caractere)
+
+    return "".join(caracteres_valides)
+
+##########################################################################################
+def extraire_texte(element):
+    """
+    Récupère le texte d'un élément HTML.
+    Si l'élément n'existe pas, retourne une chaîne vide.
+    """
+    if element:
+        return element.get_text(strip=True)
+
+    return ""
+
+#########################################################################################
+def extraire_valeur_tableau(soup, libelle):
+    """
+    Récupère la valeur d'une ligne du tableau Product Information.
+
+    Exemple :
+    libelle = "UPC"
+    retourne la valeur située dans la cellule à droite.
+    """
+    cellule_libelle = soup.find("th", string=libelle)
+
+    if cellule_libelle:
+        cellule_valeur = cellule_libelle.find_next_sibling("td")
+
+        if cellule_valeur:
+            return cellule_valeur.get_text(strip=True)
+
+    return ""
