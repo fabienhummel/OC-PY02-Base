@@ -83,9 +83,15 @@ ENTETES_CSV = [
 # -----------------------------------------------------------------------------
 def extraire_texte(element):
     """
-    Récupère le texte d'un élément HTML.
-    Si l'élément n'existe pas, retourne une chaîne vide.
+    Extrait le texte d'un élément HTML.
+
+    Args:
+        element (bs4.element.Tag | None): Élément HTML à lire.
+
+    Returns:
+        str: Texte nettoyé de l'élément, ou chaîne vide si l'élément est absent.
     """
+
     if element:
         return element.get_text(strip=True)
 
@@ -94,12 +100,19 @@ def extraire_texte(element):
 # -----------------------------------------------------------------------------
 def extraire_valeur_tableau(soup, libelle):
     """
-    Récupère la valeur d'une ligne du tableau Product Information.
+    Extrait une valeur du tableau "Product Information" d'une page livre.
 
-    Exemple :
-    libelle = "UPC"
-    retourne la valeur située dans la cellule à droite.
+    La fonction recherche un libellé dans une balise <th>, puis récupère
+    la valeur située dans la cellule <td> associée.
+
+    Args:
+        soup (BeautifulSoup): Contenu HTML analysé de la page.
+        libelle (str): Nom du champ recherché dans le tableau.
+
+    Returns:
+        str: Valeur trouvée dans le tableau, ou chaîne vide si le champ est absent.
     """
+
     cellule_libelle = soup.find("th", string=libelle)
 
     if cellule_libelle:
@@ -115,12 +128,16 @@ def nettoyer_nom_fichier(texte):
     """
     Nettoie un texte pour l'utiliser comme nom de dossier ou de fichier.
 
+    La fonction met le texte en minuscules, remplace les espaces par des
+    underscores et supprime les caractères non adaptés à un nom de fichier.
+
     Args:
         texte (str): Texte à nettoyer.
 
     Returns:
-        str: Texte nettoyé.
+        str: Texte nettoyé utilisable comme nom de fichier ou de dossier.
     """
+
     texte = texte.lower()
     texte = texte.replace(" ", "_")
 
@@ -140,14 +157,15 @@ def nettoyer_nom_fichier(texte):
 # -----------------------------------------------------------------------------
 def extraire_liens_categories(base_url):
     """
-    Extrait tous les liens des catégories depuis la page d'accueil.
+    Extrait les liens de toutes les catégories depuis la page d'accueil.
 
     Args:
-        base_url (str): URL de la page d'accueil du site.
+        base_url (str): URL de la page d'accueil du site Books to Scrape.
 
     Returns:
-        list: Liste des URL complètes des catégories.
+        list: Liste des URL complètes des pages de catégories.
     """
+
     liens_categories = []
 
     try:
@@ -170,14 +188,18 @@ def extraire_liens_categories(base_url):
 # -----------------------------------------------------------------------------
 def extraire_liens_livres(page_a_traiter):
     """
-    Extrait tous les liens des livres depuis une page donnée.
+    Extrait les liens des livres présents sur une page de catégorie.
+
+    La fonction traite uniquement la page reçue en paramètre. Elle ne gère
+    pas directement la pagination.
 
     Args:
-        page_a_traiter (str): URL de la page à traiter.
+        page_a_traiter (str): URL de la page de catégorie à analyser.
 
     Returns:
-        list: Liste des URL complètes des livres présents sur la page.
+        list: Liste des URL complètes des livres présents sur cette page.
     """
+
     liens_livres = []
 
     try:
@@ -203,7 +225,10 @@ def extraire_liens_livres(page_a_traiter):
 # -----------------------------------------------------------------------------
 def passer_toutes_les_pages_dune_categorie(lien_categorie):
     """
-    Parcourt toutes les pages d'une catégorie et récupère tous les liens des livres.
+    Parcourt toutes les pages d'une catégorie et récupère les liens des livres.
+
+    La fonction commence par la première page de la catégorie, extrait les
+    liens des livres, puis continue tant qu'un lien "next" est présent.
 
     Args:
         lien_categorie (str): URL de la première page de la catégorie.
@@ -211,6 +236,8 @@ def passer_toutes_les_pages_dune_categorie(lien_categorie):
     Returns:
         list: Liste des URL complètes de tous les livres de la catégorie.
     """
+
+
     liens_livres_dune_categorie = []
     page_courante = lien_categorie
 
@@ -245,14 +272,19 @@ def passer_toutes_les_pages_dune_categorie(lien_categorie):
 # -----------------------------------------------------------------------------
 def extraire_infos_livre(lien_livre):
     """
-    Extrait les informations d'un livre depuis l'URL de sa page.
+    Extrait les informations détaillées d'un livre depuis sa page produit.
+
+    La fonction ouvre la page du livre, analyse son contenu HTML et récupère
+    les champs nécessaires pour alimenter le fichier CSV.
 
     Args:
-        lien_livre (str): URL de la page du livre.
+        lien_livre (str): URL de la page produit du livre.
 
     Returns:
-        dict: Dictionnaire contenant les informations du livre.
+        dict | None: Dictionnaire contenant les informations du livre,
+        ou None si la page n'a pas pu être récupérée.
     """
+
     try:
         page = requests.get(lien_livre)
         page.raise_for_status()
@@ -313,14 +345,18 @@ def extraire_infos_livre(lien_livre):
 # -----------------------------------------------------------------------------
 def extraire_infos_tous_livres(liens_livres_toutes_categories):
     """
-    Extrait les informations de tous les livres à partir d'une liste d'URL.
+    Extrait les informations détaillées de plusieurs livres.
+
+    La fonction parcourt une liste d'URL de livres et appelle
+    extraire_infos_livre() pour chaque livre.
 
     Args:
         liens_livres_toutes_categories (list): Liste des URL des pages de livres.
 
     Returns:
-        list: Liste de dictionnaires contenant les informations de tous les livres.
+        list: Liste de dictionnaires contenant les informations des livres.
     """
+
     infos_livres = []
 
     for lien_livre in liens_livres_toutes_categories:
@@ -340,14 +376,19 @@ def sauvegarder_infos_livres_csv(infos_livres, dossier_export, nom_fichier):
     """
     Sauvegarde les informations des livres dans un fichier CSV.
 
+    La fonction crée le dossier de destination si nécessaire, ajoute
+    l'extension .csv au nom du fichier si elle est absente, puis écrit
+    les données avec les en-têtes définis dans ENTETES_CSV.
+
     Args:
         infos_livres (list): Liste de dictionnaires contenant les informations des livres.
-        dossier_export (str): Nom du dossier où enregistrer le fichier CSV.
+        dossier_export (str | Path): Dossier où enregistrer le fichier CSV.
         nom_fichier (str): Nom du fichier CSV à créer.
 
     Returns:
-        Path: Chemin du fichier CSV créé ou None si aucune donnée.
+        Path | None: Chemin du fichier CSV créé, ou None si aucune donnée n'est fournie.
     """
+
     if not infos_livres:
         print("Aucune information de livre à sauvegarder.")
         return None
@@ -379,16 +420,19 @@ def sauvegarder_infos_livres_csv(infos_livres, dossier_export, nom_fichier):
 # -----------------------------------------------------------------------------
 def telecharger_image(image_url, dossier_images, nom_image):
     """
-    Télécharge une image dans un dossier donné.
+    Télécharge une image depuis son URL et l'enregistre localement.
+
+    La fonction crée le dossier de destination si nécessaire.
 
     Args:
-        image_url (str): URL complète de l'image.
-        dossier_images (Path): Dossier où sauvegarder l'image.
-        nom_image (str): Nom du fichier image.
+        image_url (str): URL complète de l'image à télécharger.
+        dossier_images (Path): Dossier où enregistrer l'image.
+        nom_image (str): Nom du fichier image à créer.
 
     Returns:
-        Path: Chemin de l'image téléchargée ou None en cas d'erreur.
+        Path | None: Chemin de l'image téléchargée, ou None en cas d'erreur.
     """
+
     try:
         dossier_images.mkdir(parents=True, exist_ok=True)
 
@@ -409,15 +453,20 @@ def telecharger_image(image_url, dossier_images, nom_image):
 # -----------------------------------------------------------------------------
 def telecharger_images_categorie(infos_livres, dossier_categorie):
     """
-    Télécharge les images des livres d'une catégorie.
+    Télécharge les images de tous les livres d'une catégorie.
+
+    La fonction utilise les informations déjà extraites des livres,
+    notamment l'URL de l'image et l'UPC, pour enregistrer chaque image
+    dans un dossier images.
 
     Args:
         infos_livres (list): Liste de dictionnaires contenant les informations des livres.
-        dossier_categorie (Path): Dossier de la catégorie.
+        dossier_categorie (Path): Dossier local de la catégorie.
 
     Returns:
         list: Liste des chemins des images téléchargées.
     """
+
     images_telechargees = []
     dossier_images = dossier_categorie / "images"
 
@@ -443,11 +492,15 @@ def telecharger_images_categorie(infos_livres, dossier_categorie):
 # -----------------------------------------------------------------------------
 def sauvegarder_csv_et_images_par_categorie(liens_categories, dossier_export="export"):
     """
-    Parcourt toutes les catégories et crée :
-    - un dossier d'export daté ;
-    - un dossier par catégorie ;
-    - un fichier CSV par catégorie ;
-    - un dossier images par catégorie avec les images des livres.
+    Génère les exports CSV et images pour toutes les catégories.
+
+    Pour chaque catégorie, la fonction récupère les liens des livres,
+    extrait les informations détaillées, crée un dossier de catégorie,
+    enregistre un fichier CSV et télécharge les images associées.
+
+    La structure générée est :
+    export/export_YYYYMMDD_HHMMSS/nom_categorie/nom_categorie.csv
+    export/export_YYYYMMDD_HHMMSS/nom_categorie/images/
 
     Args:
         liens_categories (list): Liste des URL des catégories.
@@ -456,6 +509,7 @@ def sauvegarder_csv_et_images_par_categorie(liens_categories, dossier_export="ex
     Returns:
         list: Liste des chemins des fichiers CSV créés.
     """
+
     fichiers_csv_crees = []
 
     date_heure = datetime.now().strftime("%Y%m%d_%H%M%S")
