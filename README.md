@@ -145,6 +145,21 @@ Le programme suit une logique ETL simple :
 - **Transform** : nettoyage des liens, des noms de fichiers, des catégories et des données extraites ;
 - **Load** : sauvegarde des données dans des fichiers CSV et enregistrement des images dans des dossiers locaux.
 
+## Améliorations possibles
+
+Cette version du projet répond au cahier des charges demandé pour la version bêta. Certaines fonctionnalités présentes dans une version plus complète du projet pourraient être réintégrées dans une évolution future :
+
+- ajouter un **mode interactif** permettant de choisir les catégories à extraire depuis un menu dans le terminal ;
+- ajouter des **options en ligne de commande** pour piloter l'exécution du programme ;
+- permettre l'extraction de **toutes les catégories** ou seulement de certaines catégories sélectionnées ;
+- permettre de choisir le **dossier de sortie** avec une option dédiée ;
+- ajouter un **mode silencieux** pour limiter l'affichage dans le terminal pendant l'exécution ;
+- ajouter une commande pour **lister les catégories disponibles** ;
+- ajouter une commande pour **lister les livres** d'une ou plusieurs catégories ;
+- ajouter une commande pour **afficher le détail d'un ou plusieurs livres** ;
+- ajouter un **fichier de log** pour conserver l'historique des actions réalisées et des erreurs rencontrées ;
+- améliorer la gestion des erreurs avec une poursuite de l'extraction lorsqu'une catégorie ou un livre ne peut pas être traité.
+
 ## Auteur
 
 Fabien Hummel

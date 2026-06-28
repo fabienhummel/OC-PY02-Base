@@ -322,8 +322,12 @@ def extraire_infos_livre(lien_livre):
 
         if bloc_note:
             classes_note = bloc_note.get("class", [])
-            note_texte = classes_note[1]
-            note = CONVERSION_NOTES.get(note_texte, "")
+
+            if len(classes_note) > 1:
+                note_texte = classes_note[1]
+                note = CONVERSION_NOTES.get(note_texte, "")
+            else:
+                note = ""
         else:
             note = ""
 
