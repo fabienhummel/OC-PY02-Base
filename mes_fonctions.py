@@ -53,6 +53,7 @@ from bs4 import BeautifulSoup
 # 2. CONSTANTES
 # =============================================================================
 
+# Conversion des notes textuelles du site en valeurs numériques
 CONVERSION_NOTES = {
             "One": 1,
             "Two": 2,
@@ -61,6 +62,7 @@ CONVERSION_NOTES = {
             "Five": 5,
 }
 
+# En-têtes utilisés pour créer les fichiers CSV
 ENTETES_CSV = [
     "product_page_url",
     "universal_product_code",
@@ -174,10 +176,12 @@ def extraire_liens_categories(base_url):
 
         soup = BeautifulSoup(page_accueil.text, "html.parser")
 
-        categories = soup.select("div.side_categories ul li ul li a")
+        
+        categories = soup.select("div.side_categories ul li ul li a") # Sélection des liens des catégories dans le menu latéral gauche
         for categorie in categories:
             lien_relatif = categorie.get("href")
-            lien_complet = urljoin(base_url, lien_relatif)
+            
+            lien_complet = urljoin(base_url, lien_relatif) # Transformation du lien relatif en URL complète
             liens_categories.append(lien_complet)
 
     except requests.exceptions.RequestException as erreur:
@@ -208,11 +212,12 @@ def extraire_liens_livres(page_a_traiter):
 
         soup = BeautifulSoup(page.text, "html.parser")
 
-        liens = soup.select("article.product_pod h3 a")
+        liens = soup.select("article.product_pod h3 a") # Chaque livre est contenu dans un bloc article.product_pod
 
         for lien in liens:
             lien_relatif = lien.get("href")
 
+            # Sécurité : on vérifie que le lien existe avant de construire l'URL complète
             if lien_relatif:
                 lien_complet = urljoin(page_a_traiter, lien_relatif)
                 liens_livres.append(lien_complet)
@@ -239,11 +244,11 @@ def passer_toutes_les_pages_dune_categorie(lien_categorie):
 
 
     liens_livres_dune_categorie = []
-    page_courante = lien_categorie
+    page_courante = lien_categorie # La première page à traiter est la page de la catégorie
 
-    while page_courante:
-        liens_livres_page = extraire_liens_livres(page_courante)
-        liens_livres_dune_categorie.extend(liens_livres_page)
+    while page_courante: # Tant qu'une page courante existe, on continue à parcourir la catégorie
+        liens_livres_page = extraire_liens_livres(page_courante) # Extraction des liens des livres présents sur la page courante
+        liens_livres_dune_categorie.extend(liens_livres_page) # Ajout des liens de la page courante à la liste complète de la catégorie
 
         try:
             page = requests.get(page_courante)
@@ -257,11 +262,11 @@ def passer_toutes_les_pages_dune_categorie(lien_categorie):
                 lien_relatif_next = lien_next.get("href")
                 page_courante = urljoin(page_courante, lien_relatif_next)
             else:
-                page_courante = None
+                page_courante = None # S'il n'y a plus de page suivante, la boucle s'arrête
 
         except requests.exceptions.RequestException as erreur:
             print(f"Erreur lors du passage à la page suivante : {erreur}")
-            page_courante = None
+            page_courante = None 
 
     return liens_livres_dune_categorie
 
@@ -286,11 +291,13 @@ def extraire_infos_livre(lien_livre):
     """
 
     try:
+        # Récupération et analyse de la page produit
         page = requests.get(lien_livre)
         page.raise_for_status()
 
         soup = BeautifulSoup(page.content, "html.parser")
-
+        
+        # Extraction des informations présentes dans le tableau Product Information
         upc = extraire_valeur_tableau(soup, "UPC")
         prix_ttc = extraire_valeur_tableau(soup, "Price (incl. tax)")
         prix_ht = extraire_valeur_tableau(soup, "Price (excl. tax)")
@@ -298,16 +305,19 @@ def extraire_infos_livre(lien_livre):
 
         titre = extraire_texte(soup.select_one("h1"))
         description = extraire_texte(soup.select_one("#product_description ~ p"))
-
+        
+        # Nettoyage de la disponibilité pour ne garder que le nombre d'exemplaires
         nombre_disponible = "".join(filter(str.isdigit, disponibilite))
-
+        
+        # La catégorie est récupérée depuis le fil d'Ariane
         fil_ariane = soup.select("ul.breadcrumb li a")
 
         if len(fil_ariane) >= 3:
             categorie = fil_ariane[-1].get_text(strip=True)
         else:
             categorie = ""
-
+        
+        # La note est stockée dans une classe CSS, puis convertie en nombre
         bloc_note = soup.select_one(".star-rating")
 
         if bloc_note:
@@ -321,7 +331,7 @@ def extraire_infos_livre(lien_livre):
 
         if image:
             image_relative = image.get("src")
-            image_url = urljoin(lien_livre, image_relative)
+            image_url = urljoin(lien_livre, image_relative) # Conversion de l'URL relative de l'image en URL complète
         else:
             image_url = ""
 
@@ -388,20 +398,23 @@ def sauvegarder_infos_livres_csv(infos_livres, dossier_export, nom_fichier):
     Returns:
         Path | None: Chemin du fichier CSV créé, ou None si aucune donnée n'est fournie.
     """
-
+    
+    # Aucun fichier CSV n'est créé si la liste de livres est vide
     if not infos_livres:
         print("Aucune information de livre à sauvegarder.")
         return None
 
     chemin_dossier = Path(dossier_export)
-    chemin_dossier.mkdir(parents=True, exist_ok=True)
-
+    chemin_dossier.mkdir(parents=True, exist_ok=True) # Création du dossier de destination si nécessaire
+    
+    # Ajout automatique de l'extension .csv si elle n'est pas fournie
     if not nom_fichier.endswith(".csv"):
         nom_fichier = nom_fichier + ".csv"
 
     chemin_fichier = chemin_dossier / nom_fichier
 
     with open(chemin_fichier, "w", newline="", encoding="utf-8-sig") as fichier_csv:
+        # Écriture du fichier CSV avec les en-têtes définis dans la constante ENTETES_CSV
         writer = csv.DictWriter(
             fichier_csv, 
             fieldnames=ENTETES_CSV, 
@@ -434,14 +447,14 @@ def telecharger_image(image_url, dossier_images, nom_image):
     """
 
     try:
-        dossier_images.mkdir(parents=True, exist_ok=True)
+        dossier_images.mkdir(parents=True, exist_ok=True) # Création du dossier images si nécessaire
 
         chemin_image = dossier_images / nom_image
 
         reponse = requests.get(image_url)
         reponse.raise_for_status()
 
-        with open(chemin_image, "wb") as fichier_image:
+        with open(chemin_image, "wb") as fichier_image: # Ouverture du fichier en mode binaire pour écrire le contenu de l'image
             fichier_image.write(reponse.content)
 
         return chemin_image
@@ -468,14 +481,14 @@ def telecharger_images_categorie(infos_livres, dossier_categorie):
     """
 
     images_telechargees = []
-    dossier_images = dossier_categorie / "images"
+    dossier_images = dossier_categorie / "images" # Les images d'une catégorie sont stockées dans un sous-dossier images
 
     for livre in infos_livres:
         image_url = livre["image_url"]
         upc = livre["universal_product_code"]
 
         extension = Path(urlparse(image_url).path).suffix
-        nom_image = upc + extension
+        nom_image = upc + extension # L'UPC est utilisé comme nom de fichier car il est unique pour chaque livre
 
         chemin_image = telecharger_image(image_url, dossier_images, nom_image)
 
@@ -512,30 +525,33 @@ def sauvegarder_csv_et_images_par_categorie(liens_categories, dossier_export="ex
 
     fichiers_csv_crees = []
 
+    # Création d'un dossier d'export daté pour chaque exécution du script
     date_heure = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     dossier_export_racine = Path(dossier_export)
-    dossier_export_date = dossier_export_racine / f"export_{date_heure}"
+    dossier_export_date = dossier_export_racine / f"export_{date_heure}" # Création du chemin export/export_YYYYMMDD_HHMMSS
 
+    # Traitement d'une catégorie complète : liens, infos, CSV et images
     for lien_categorie in liens_categories:
         liens_livres_dune_categorie = passer_toutes_les_pages_dune_categorie(lien_categorie)
 
         infos_livres = extraire_infos_tous_livres(liens_livres_dune_categorie)
 
         if infos_livres:
-            nom_categorie = infos_livres[0]["category"]
+            nom_categorie = infos_livres[0]["category"] # Le nom de la catégorie sert à créer le dossier et le fichier CSV
             nom_categorie_nettoye = nettoyer_nom_fichier(nom_categorie)
 
             dossier_categorie = dossier_export_date / nom_categorie_nettoye
             nom_fichier_csv = nom_categorie_nettoye + ".csv"
 
+            # Sauvegarde du CSV de la catégorie
             chemin_csv = sauvegarder_infos_livres_csv(
                 infos_livres,
                 dossier_categorie,
                 nom_fichier_csv
             )
 
-            telecharger_images_categorie(infos_livres, dossier_categorie)
+            telecharger_images_categorie(infos_livres, dossier_categorie) # Téléchargement des images correspondant aux livres du CSV
 
             fichiers_csv_crees.append(chemin_csv)
 
