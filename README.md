@@ -13,7 +13,8 @@ Le script permet de :
 - récupérer tous les liens des pages de livres ;
 - extraire les informations détaillées de chaque livre ;
 - créer un fichier CSV par catégorie ;
-- télécharger les images des livres dans un dossier dédié à chaque catégorie.
+- télécharger les images des livres dans un dossier dédié à chaque catégorie ;
+- choisir le dossier d'export avec une option de ligne de commande.
 
 ## Données extraites
 
@@ -95,11 +96,43 @@ python scraper_books.py
 
 Le programme extrait les données du site, crée les fichiers CSV et télécharge les images.
 
-## Résultat généré
+## Aide en ligne de commande
 
-À chaque exécution, le script crée un dossier d'export daté dans le dossier `export/`.
+Le script utilise `argparse` pour gérer les options de ligne de commande.
+
+Afficher l'aide :
+
+```bash
+python scraper_books.py --help
+```
+
+ou :
+
+```bash
+python scraper_books.py -h
+```
+
+## Options disponibles
+
+### Choisir le dossier d'export
+
+Par défaut, les fichiers générés sont enregistrés dans le dossier `export/`.
+
+Il est possible de choisir un autre dossier d'export avec l'option `--dossier-export`.
 
 Exemple :
+
+```bash
+python scraper_books.py --dossier-export export_test
+```
+
+Dans ce cas, les données seront enregistrées dans le dossier `export_test/`.
+
+## Résultat généré
+
+À chaque exécution, le script crée un dossier d'export daté dans le dossier d'export choisi.
+
+Exemple avec le dossier par défaut `export/` :
 
 ```text
 export/
@@ -129,7 +162,7 @@ Les principales bibliothèques utilisées sont :
 - `requests` : récupération des pages HTML et téléchargement des images ;
 - `beautifulsoup4` : analyse du HTML et extraction des données.
 
-Les autres modules utilisés, comme `csv`, `pathlib`, `datetime` ou `urllib.parse`, font partie de la bibliothèque standard de Python.
+Les autres modules utilisés, comme `csv`, `pathlib`, `datetime`, `argparse` ou `urllib.parse`, font partie de la bibliothèque standard de Python.
 
 ## Données non versionnées
 
@@ -139,9 +172,9 @@ Le fichier `.gitignore` ignore le contenu du dossier `export/`, tout en conserva
 
 ## Logique ETL
 
-Le programme suit une logique ETL simple :
+Même si le code n'est pas découpé explicitement en modules nommés `Extract`, `Transform` et `Load`, son fonctionnement suit une logique ETL simple :
 
-- **Extract** : récupération des pages HTML et des images depuis Books to Scrape ;
+- **Extract** : récupération des pages HTML, des catégories, des liens des livres et des images depuis Books to Scrape ;
 - **Transform** : nettoyage des liens, des noms de fichiers, des catégories et des données extraites ;
 - **Load** : sauvegarde des données dans des fichiers CSV et enregistrement des images dans des dossiers locaux.
 
@@ -150,9 +183,9 @@ Le programme suit une logique ETL simple :
 Cette version du projet répond au cahier des charges demandé pour la version bêta. Certaines fonctionnalités présentes dans une version plus complète du projet pourraient être réintégrées dans une évolution future :
 
 - ajouter un **mode interactif** permettant de choisir les catégories à extraire depuis un menu dans le terminal ;
-- ajouter des **options en ligne de commande** pour piloter l'exécution du programme ;
+- ajouter davantage d'**options en ligne de commande** pour piloter l'exécution du programme ;
 - permettre l'extraction de **toutes les catégories** ou seulement de certaines catégories sélectionnées ;
-- permettre de choisir le **dossier de sortie** avec une option dédiée ;
+- permettre de choisir plus finement le **dossier de sortie** ;
 - ajouter un **mode silencieux** pour limiter l'affichage dans le terminal pendant l'exécution ;
 - ajouter une commande pour **lister les catégories disponibles** ;
 - ajouter une commande pour **lister les livres** d'une ou plusieurs catégories ;
