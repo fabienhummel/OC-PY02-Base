@@ -10,9 +10,9 @@ Organisation :
 2. Constantes
 
 3. Fonctions outils
-   - extraire_texte()
-   - extraire_valeur_tableau()
-   - nettoyer_nom_fichier()
+   - extract_text()
+   - extract_table_value()
+   - sanitize_filename()
 
 4. Extraction des liens
    - extraire_liens_categories()
@@ -83,7 +83,7 @@ CSV_HEADERS = [
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-def extraire_texte(element):
+def extract_text(element):
     """
     Extrait le texte d'un élément HTML.
 
@@ -100,7 +100,7 @@ def extraire_texte(element):
     return ""
 
 # -----------------------------------------------------------------------------
-def extraire_valeur_tableau(soup, libelle):
+def extract_table_value(soup, label):
     """
     Extrait une valeur du tableau "Product Information" d'une page livre.
 
@@ -109,24 +109,24 @@ def extraire_valeur_tableau(soup, libelle):
 
     Args:
         soup (BeautifulSoup): Contenu HTML analysé de la page.
-        libelle (str): Nom du champ recherché dans le tableau.
+        label (str): Nom du champ recherché dans le tableau.
 
     Returns:
         str: Valeur trouvée dans le tableau, ou chaîne vide si le champ est absent.
     """
 
-    cellule_libelle = soup.find("th", string=libelle)
+    label_cell = soup.find("th", string=label)
 
-    if cellule_libelle:
-        cellule_valeur = cellule_libelle.find_next_sibling("td")
+    if label_cell:
+        value_cell = label_cell.find_next_sibling("td")
 
-        if cellule_valeur:
-            return cellule_valeur.get_text(strip=True)
+        if value_cell:
+            return value_cell.get_text(strip=True)
 
     return ""
 
 # -----------------------------------------------------------------------------
-def nettoyer_nom_fichier(texte):
+def sanitize_filename(text):
     """
     Nettoie un texte pour l'utiliser comme nom de dossier ou de fichier.
 
@@ -134,22 +134,22 @@ def nettoyer_nom_fichier(texte):
     underscores et supprime les caractères non adaptés à un nom de fichier.
 
     Args:
-        texte (str): Texte à nettoyer.
+        text (str): Texte à nettoyer.
 
     Returns:
         str: Texte nettoyé utilisable comme nom de fichier ou de dossier.
     """
 
-    texte = texte.lower()
-    texte = texte.replace(" ", "_")
+    text = text.lower()
+    text = text.replace(" ", "_")
 
-    caracteres_valides = []
+    valid_characters = []
 
-    for caractere in texte:
-        if caractere.isalnum() or caractere in ["_", "-"]:
-            caracteres_valides.append(caractere)
+    for character in text:
+        if character.isalnum() or character in ["_", "-"]:
+            valid_characters.append(character)
 
-    return "".join(caracteres_valides)
+    return "".join(valid_characters)
 
 
 # =============================================================================
@@ -298,13 +298,13 @@ def extraire_infos_livre(lien_livre):
         soup = BeautifulSoup(page.content, "html.parser")
         
         # Extraction des informations présentes dans le tableau Product Information
-        upc = extraire_valeur_tableau(soup, "UPC")
-        prix_ttc = extraire_valeur_tableau(soup, "Price (incl. tax)")
-        prix_ht = extraire_valeur_tableau(soup, "Price (excl. tax)")
-        disponibilite = extraire_valeur_tableau(soup, "Availability")
+        upc = extract_table_value(soup, "UPC")
+        prix_ttc = extract_table_value(soup, "Price (incl. tax)")
+        prix_ht = extract_table_value(soup, "Price (excl. tax)")
+        disponibilite = extract_table_value(soup, "Availability")
 
-        titre = extraire_texte(soup.select_one("h1"))
-        description = extraire_texte(soup.select_one("#product_description ~ p"))
+        titre = extract_text(soup.select_one("h1"))
+        description = extract_text(soup.select_one("#product_description ~ p"))
         
         # Nettoyage de la disponibilité pour ne garder que le nombre d'exemplaires
         nombre_disponible = "".join(filter(str.isdigit, disponibilite))
@@ -543,7 +543,7 @@ def sauvegarder_csv_et_images_par_categorie(liens_categories, dossier_export="ex
 
         if infos_livres:
             nom_categorie = infos_livres[0]["category"] # Le nom de la catégorie sert à créer le dossier et le fichier CSV
-            nom_categorie_nettoye = nettoyer_nom_fichier(nom_categorie)
+            nom_categorie_nettoye = sanitize_filename(nom_categorie)
 
             dossier_categorie = dossier_export_date / nom_categorie_nettoye
             nom_fichier_csv = nom_categorie_nettoye + ".csv"
