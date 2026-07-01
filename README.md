@@ -4,6 +4,10 @@ Projet réalisé dans le cadre du parcours OpenClassrooms **Développeur Python*
 
 L'objectif du projet est de créer un script Python capable d'extraire les informations des livres du site [Books to Scrape](https://books.toscrape.com/), puis de sauvegarder les données dans des fichiers CSV organisés par catégorie.
 
+Le programme télécharge également les images associées aux livres et les range dans des dossiers dédiés.
+
+---
+
 ## Fonctionnalités
 
 Le script permet de :
@@ -15,6 +19,8 @@ Le script permet de :
 - créer un fichier CSV par catégorie ;
 - télécharger les images des livres dans un dossier dédié à chaque catégorie ;
 - choisir le dossier d'export avec une option de ligne de commande.
+
+---
 
 ## Données extraites
 
@@ -33,20 +39,61 @@ review_rating
 image_url
 ```
 
+Ces champs sont utilisés comme en-têtes dans les fichiers CSV générés.
+
+---
+
 ## Structure du projet
 
 ```text
 OC-PY02-Base/
 ├── export/
 │   └── .gitkeep
-├── mes_fonctions.py
 ├── scraper_books.py
+├── scraper_functions.py
 ├── requirements.txt
 ├── .gitignore
 └── README.md
 ```
 
-Le dossier `export/` est présent dans le projet, mais son contenu généré est ignoré par Git.
+Le dossier `export/` est présent dans le projet grâce au fichier `.gitkeep`.
+
+Le contenu généré dans `export/` est ignoré par Git afin d'éviter de versionner les fichiers CSV et les images téléchargées.
+
+---
+
+## Rôle des fichiers principaux
+
+### `scraper_books.py`
+
+Fichier principal du projet.
+
+Il permet de :
+
+- définir l'URL de base du site ;
+- gérer les arguments de ligne de commande avec `argparse` ;
+- lancer l'extraction complète ;
+- afficher les fichiers CSV générés.
+
+### `scraper_functions.py`
+
+Fichier contenant les fonctions utilisées par le script principal.
+
+Il contient notamment les fonctions permettant de :
+
+- récupérer les liens des catégories ;
+- récupérer les liens des livres ;
+- gérer la pagination ;
+- extraire les données d'une page produit ;
+- sauvegarder les données dans des fichiers CSV ;
+- télécharger les images ;
+- organiser l'export par catégorie.
+
+### `requirements.txt`
+
+Fichier contenant les dépendances Python nécessaires au projet.
+
+---
 
 ## Installation
 
@@ -86,15 +133,23 @@ Installer les dépendances :
 pip install -r requirements.txt
 ```
 
+---
+
 ## Exécution du script
 
-Lancer le script principal :
+Lancer le script principal avec le dossier d'export par défaut :
 
 ```bash
 python scraper_books.py
 ```
 
-Le programme extrait les données du site, crée les fichiers CSV et télécharge les images.
+Par défaut, les données générées sont enregistrées dans le dossier :
+
+```text
+export/
+```
+
+---
 
 ## Aide en ligne de commande
 
@@ -112,21 +167,43 @@ ou :
 python scraper_books.py -h
 ```
 
+---
+
 ## Options disponibles
 
 ### Choisir le dossier d'export
 
-Par défaut, les fichiers générés sont enregistrés dans le dossier `export/`.
+L'option principale est :
 
-Il est possible de choisir un autre dossier d'export avec l'option `--dossier-export`.
+```bash
+--export-folder
+```
 
 Exemple :
+
+```bash
+python scraper_books.py --export-folder export_test
+```
+
+Dans ce cas, les données seront enregistrées dans le dossier :
+
+```text
+export_test/
+```
+
+L'ancien nom d'option est encore accepté pour compatibilité :
 
 ```bash
 python scraper_books.py --dossier-export export_test
 ```
 
-Dans ce cas, les données seront enregistrées dans le dossier `export_test/`.
+Cependant, l'option recommandée est maintenant :
+
+```bash
+--export-folder
+```
+
+---
 
 ## Résultat généré
 
@@ -155,6 +232,8 @@ Chaque catégorie possède son propre dossier contenant :
 - un fichier CSV avec les informations des livres ;
 - un dossier `images/` contenant les images des livres de la catégorie.
 
+---
+
 ## Dépendances
 
 Les principales bibliothèques utilisées sont :
@@ -162,36 +241,96 @@ Les principales bibliothèques utilisées sont :
 - `requests` : récupération des pages HTML et téléchargement des images ;
 - `beautifulsoup4` : analyse du HTML et extraction des données.
 
-Les autres modules utilisés, comme `csv`, `pathlib`, `datetime`, `argparse` ou `urllib.parse`, font partie de la bibliothèque standard de Python.
+Les autres modules utilisés font partie de la bibliothèque standard de Python :
+
+- `argparse` ;
+- `csv` ;
+- `datetime` ;
+- `pathlib` ;
+- `urllib.parse`.
+
+---
 
 ## Données non versionnées
 
 Les fichiers générés par le script ne sont pas stockés dans le dépôt GitHub.
 
-Le fichier `.gitignore` ignore le contenu du dossier `export/`, tout en conservant le dossier grâce au fichier `.gitkeep`.
+Le fichier `.gitignore` ignore le contenu généré du dossier `export/`, tout en conservant le dossier grâce au fichier `.gitkeep`.
+
+Le dossier de configuration PyCharm `.idea/` est également ignoré.
+
+---
 
 ## Logique ETL
 
-Même si le code n'est pas découpé explicitement en modules nommés `Extract`, `Transform` et `Load`, son fonctionnement suit une logique ETL simple :
+Le fonctionnement du programme suit une logique ETL : **Extract, Transform, Load**.
 
-- **Extract** : récupération des pages HTML, des catégories, des liens des livres et des images depuis Books to Scrape ;
-- **Transform** : nettoyage des liens, des noms de fichiers, des catégories et des données extraites ;
-- **Load** : sauvegarde des données dans des fichiers CSV et enregistrement des images dans des dossiers locaux.
+### Extract
+
+Le programme récupère les données depuis le site Books to Scrape :
+
+- les catégories ;
+- les pages de catégories ;
+- les liens des livres ;
+- les informations détaillées de chaque livre ;
+- les images associées aux livres.
+
+### Transform
+
+Le programme transforme certaines données avant de les sauvegarder :
+
+- conversion des liens relatifs en liens absolus ;
+- nettoyage des noms de catégories pour créer des noms de dossiers et de fichiers valides ;
+- extraction du nombre disponible à partir du texte de disponibilité ;
+- conversion des notes textuelles en valeurs numériques ;
+- organisation des données dans des dictionnaires Python.
+
+### Load
+
+Le programme enregistre les données localement :
+
+- création d'un dossier d'export daté ;
+- création d'un dossier par catégorie ;
+- création d'un fichier CSV par catégorie ;
+- téléchargement des images dans un dossier `images/`.
+
+---
+
+## Convention de nommage du code
+
+Les noms de fonctions, variables et constantes sont écrits en anglais afin de respecter les conventions courantes de développement Python.
+
+Exemples :
+
+```python
+extract_category_links()
+extract_book_data()
+save_books_data_to_csv()
+download_category_images()
+save_csv_and_images_by_category()
+```
+
+Les commentaires et la documentation restent en français afin de faciliter la compréhension du projet.
+
+---
 
 ## Améliorations possibles
 
-Cette version du projet répond au cahier des charges demandé pour la version bêta. Certaines fonctionnalités présentes dans une version plus complète du projet pourraient être réintégrées dans une évolution future :
+Cette version du projet répond au cahier des charges demandé pour la version bêta.
 
-- ajouter un **mode interactif** permettant de choisir les catégories à extraire depuis un menu dans le terminal ;
-- ajouter davantage d'**options en ligne de commande** pour piloter l'exécution du programme ;
-- permettre l'extraction de **toutes les catégories** ou seulement de certaines catégories sélectionnées ;
-- permettre de choisir plus finement le **dossier de sortie** ;
-- ajouter un **mode silencieux** pour limiter l'affichage dans le terminal pendant l'exécution ;
-- ajouter une commande pour **lister les catégories disponibles** ;
-- ajouter une commande pour **lister les livres** d'une ou plusieurs catégories ;
-- ajouter une commande pour **afficher le détail d'un ou plusieurs livres** ;
-- ajouter un **fichier de log** pour conserver l'historique des actions réalisées et des erreurs rencontrées ;
+Certaines améliorations pourraient être ajoutées dans une version future :
+
+- ajouter un mode interactif permettant de choisir les catégories à extraire depuis un menu dans le terminal ;
+- ajouter davantage d'options en ligne de commande pour piloter l'exécution du programme ;
+- permettre l'extraction de toutes les catégories ou seulement de certaines catégories sélectionnées ;
+- ajouter un mode silencieux pour limiter l'affichage dans le terminal pendant l'exécution ;
+- ajouter une commande pour lister les catégories disponibles ;
+- ajouter une commande pour lister les livres d'une ou plusieurs catégories ;
+- ajouter une commande pour afficher le détail d'un ou plusieurs livres ;
+- ajouter un fichier de log pour conserver l'historique des actions réalisées et des erreurs rencontrées ;
 - améliorer la gestion des erreurs avec une poursuite de l'extraction lorsqu'une catégorie ou un livre ne peut pas être traité.
+
+---
 
 ## Auteur
 
