@@ -221,3 +221,5 @@ __marimo__/
 # Données générées par le scraper
 export/*
 !export/.gitkeep
+# PyCharm
+.idea/
