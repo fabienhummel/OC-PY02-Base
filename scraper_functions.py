@@ -24,7 +24,7 @@ Organisation :
    - extract_all_books_data()
 
 6. Sauvegarde CSV
-   - sauvegarder_infos_livres_csv()
+   - save_books_data_to_csv()
 
 7. Téléchargement des images
    - telecharger_image()
@@ -386,7 +386,7 @@ def extract_all_books_data(all_book_links):
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-def sauvegarder_infos_livres_csv(infos_livres, dossier_export, nom_fichier):
+def save_books_data_to_csv(books_data, export_folder, filename):
     """
     Sauvegarde les informations des livres dans un fichier CSV.
 
@@ -395,39 +395,39 @@ def sauvegarder_infos_livres_csv(infos_livres, dossier_export, nom_fichier):
     les données avec les en-têtes définis dans CSV_HEADERS.
 
     Args:
-        infos_livres (list): Liste de dictionnaires contenant les informations des livres.
-        dossier_export (str | Path): Dossier où enregistrer le fichier CSV.
-        nom_fichier (str): Nom du fichier CSV à créer.
+        books_data (list): Liste de dictionnaires contenant les informations des livres.
+        export_folder (str | Path): Dossier où enregistrer le fichier CSV.
+        filename (str): Nom du fichier CSV à créer.
 
     Returns:
         Path | None: Chemin du fichier CSV créé, ou None si aucune donnée n'est fournie.
     """
     
     # Aucun fichier CSV n'est créé si la liste de livres est vide
-    if not infos_livres:
+    if not books_data:
         print("Aucune information de livre à sauvegarder.")
         return None
 
-    chemin_dossier = Path(dossier_export)
-    chemin_dossier.mkdir(parents=True, exist_ok=True) # Création du dossier de destination si nécessaire
+    folder_path = Path(export_folder)
+    folder_path.mkdir(parents=True, exist_ok=True) # Création du dossier de destination si nécessaire
     
     # Ajout automatique de l'extension .csv si elle n'est pas fournie
-    if not nom_fichier.endswith(".csv"):
-        nom_fichier = nom_fichier + ".csv"
+    if not filename.endswith(".csv"):
+        filename = filename + ".csv"
 
-    chemin_fichier = chemin_dossier / nom_fichier
+    file_path = folder_path / filename
 
-    with open(chemin_fichier, "w", newline="", encoding="utf-8-sig") as fichier_csv:
+    with open(file_path, "w", newline="", encoding="utf-8-sig") as csv_file:
         # Écriture du fichier CSV avec les en-têtes définis dans la constante CSV_HEADERS
         writer = csv.DictWriter(
-            fichier_csv, 
+            csv_file,
             fieldnames=CSV_HEADERS,
             delimiter=","
             )
         writer.writeheader()
-        writer.writerows(infos_livres)
+        writer.writerows(books_data)
 
-    return chemin_fichier
+    return file_path
 
 
 # =============================================================================
@@ -549,7 +549,7 @@ def sauvegarder_csv_et_images_par_categorie(liens_categories, dossier_export="ex
             nom_fichier_csv = nom_categorie_nettoye + ".csv"
 
             # Sauvegarde du CSV de la catégorie
-            chemin_csv = sauvegarder_infos_livres_csv(
+            chemin_csv = save_books_data_to_csv(
                 infos_livres,
                 dossier_categorie,
                 nom_fichier_csv
