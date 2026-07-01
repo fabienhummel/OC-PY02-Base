@@ -223,3 +223,6 @@ export/*
 !export/.gitkeep
 # PyCharm
 .idea/
+
+# Dossier de test d'export
+export_test/
