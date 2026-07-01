@@ -15,9 +15,9 @@ Organisation :
    - sanitize_filename()
 
 4. Extraction des liens
-   - extraire_liens_categories()
-   - extraire_liens_livres()
-   - passer_toutes_les_pages_dune_categorie()
+   - extract_category_links()
+   - extract_book_links()
+   - extract_all_book_links_from_category()
 
 5. Extraction des informations des livres
    - extraire_infos_livre()
@@ -157,7 +157,7 @@ def sanitize_filename(text):
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-def extraire_liens_categories(base_url):
+def extract_category_links(base_url):
     """
     Extrait les liens de toutes les catégories depuis la page d'accueil.
 
@@ -168,29 +168,29 @@ def extraire_liens_categories(base_url):
         list: Liste des URL complètes des pages de catégories.
     """
 
-    liens_categories = []
+    category_links = []
 
     try:
-        page_accueil = requests.get(base_url)
-        page_accueil.raise_for_status()
+        home_page = requests.get(base_url)
+        home_page.raise_for_status()
 
-        soup = BeautifulSoup(page_accueil.text, "html.parser")
+        soup = BeautifulSoup(home_page.text, "html.parser")
 
         
         categories = soup.select("div.side_categories ul li ul li a") # Sélection des liens des catégories dans le menu latéral gauche
-        for categorie in categories:
-            lien_relatif = categorie.get("href")
+        for category in categories:
+            relative_link = category.get("href")
             
-            lien_complet = urljoin(base_url, lien_relatif) # Transformation du lien relatif en URL complète
-            liens_categories.append(lien_complet)
+            full_link = urljoin(base_url, relative_link) # Transformation du lien relatif en URL complète
+            category_links.append(full_link)
 
-    except requests.exceptions.RequestException as erreur:
-        print(f"Erreur lors de la récupération des catégories : {erreur}")
+    except requests.exceptions.RequestException as error:
+        print(f"Erreur lors de la récupération des catégories : {error}")
         
-    return liens_categories
+    return category_links
 
 # -----------------------------------------------------------------------------
-def extraire_liens_livres(page_a_traiter):
+def extract_book_links(page_to_process):
     """
     Extrait les liens des livres présents sur une page de catégorie.
 
@@ -198,37 +198,37 @@ def extraire_liens_livres(page_a_traiter):
     pas directement la pagination.
 
     Args:
-        page_a_traiter (str): URL de la page de catégorie à analyser.
+        page_to_process (str): URL de la page de catégorie à analyser.
 
     Returns:
         list: Liste des URL complètes des livres présents sur cette page.
     """
 
-    liens_livres = []
+    book_links = []
 
     try:
-        page = requests.get(page_a_traiter)
-        page.raise_for_status()
+        response = requests.get(page_to_process)
+        response.raise_for_status()
 
-        soup = BeautifulSoup(page.text, "html.parser")
+        soup = BeautifulSoup(response.text, "html.parser")
 
-        liens = soup.select("article.product_pod h3 a") # Chaque livre est contenu dans un bloc article.product_pod
+        links = soup.select("article.product_pod h3 a") # Chaque livre est contenu dans un bloc article.product_pod
 
-        for lien in liens:
-            lien_relatif = lien.get("href")
+        for link in links:
+            relative_link = link.get("href")
 
             # Sécurité : on vérifie que le lien existe avant de construire l'URL complète
-            if lien_relatif:
-                lien_complet = urljoin(page_a_traiter, lien_relatif)
-                liens_livres.append(lien_complet)
+            if relative_link:
+                full_link = urljoin(page_to_process, relative_link)
+                book_links.append(full_link)
 
-    except requests.exceptions.RequestException as erreur:
-        print(f"Erreur lors de la récupération des liens des livres : {erreur}")
+    except requests.exceptions.RequestException as error:
+        print(f"Erreur lors de la récupération des liens des livres : {error}")
 
-    return liens_livres
+    return book_links
 
 # -----------------------------------------------------------------------------
-def passer_toutes_les_pages_dune_categorie(lien_categorie):
+def extract_all_book_links_from_category(category_link):
     """
     Parcourt toutes les pages d'une catégorie et récupère les liens des livres.
 
@@ -236,39 +236,39 @@ def passer_toutes_les_pages_dune_categorie(lien_categorie):
     liens des livres, puis continue tant qu'un lien "next" est présent.
 
     Args:
-        lien_categorie (str): URL de la première page de la catégorie.
+        category_link (str): URL de la première page de la catégorie.
 
     Returns:
         list: Liste des URL complètes de tous les livres de la catégorie.
     """
 
 
-    liens_livres_dune_categorie = []
-    page_courante = lien_categorie # La première page à traiter est la page de la catégorie
+    category_book_links = []
+    current_page = category_link # La première page à traiter est la page de la catégorie
 
-    while page_courante: # Tant qu'une page courante existe, on continue à parcourir la catégorie
-        liens_livres_page = extraire_liens_livres(page_courante) # Extraction des liens des livres présents sur la page courante
-        liens_livres_dune_categorie.extend(liens_livres_page) # Ajout des liens de la page courante à la liste complète de la catégorie
+    while current_page: # Tant qu'une page courante existe, on continue à parcourir la catégorie
+        page_book_links = extract_book_links(current_page) # Extraction des liens des livres présents sur la page courante
+        category_book_links.extend(page_book_links) # Ajout des liens de la page courante à la liste complète de la catégorie
 
         try:
-            page = requests.get(page_courante)
-            page.raise_for_status()
+            response = requests.get(current_page)
+            response.raise_for_status()
 
-            soup = BeautifulSoup(page.text, "html.parser")
+            soup = BeautifulSoup(response.text, "html.parser")
 
-            lien_next = soup.select_one("li.next a")
+            next_link = soup.select_one("li.next a")
 
-            if lien_next:
-                lien_relatif_next = lien_next.get("href")
-                page_courante = urljoin(page_courante, lien_relatif_next)
+            if next_link:
+                relative_next_link = next_link.get("href")
+                current_page = urljoin(current_page, relative_next_link)
             else:
-                page_courante = None # S'il n'y a plus de page suivante, la boucle s'arrête
+                current_page = None # S'il n'y a plus de page suivante, la boucle s'arrête
 
-        except requests.exceptions.RequestException as erreur:
-            print(f"Erreur lors du passage à la page suivante : {erreur}")
-            page_courante = None 
+        except requests.exceptions.RequestException as error:
+            print(f"Erreur lors du passage à la page suivante : {error}")
+            current_page = None
 
-    return liens_livres_dune_categorie
+    return category_book_links
 
 # =============================================================================
 # 5. EXTRACTION DES INFORMATIONS DES LIVRES
@@ -537,7 +537,7 @@ def sauvegarder_csv_et_images_par_categorie(liens_categories, dossier_export="ex
 
     # Traitement d'une catégorie complète : liens, infos, CSV et images
     for lien_categorie in liens_categories:
-        liens_livres_dune_categorie = passer_toutes_les_pages_dune_categorie(lien_categorie)
+        liens_livres_dune_categorie = extract_all_book_links_from_category(lien_categorie)
 
         infos_livres = extraire_infos_tous_livres(liens_livres_dune_categorie)
 
