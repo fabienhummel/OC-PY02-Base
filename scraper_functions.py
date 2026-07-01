@@ -20,7 +20,7 @@ Organisation :
    - extract_all_book_links_from_category()
 
 5. Extraction des informations des livres
-   - extraire_infos_livre()
+   - extract_book_data()
    - extraire_infos_tous_livres()
 
 6. Sauvegarde CSV
@@ -275,7 +275,7 @@ def extract_all_book_links_from_category(category_link):
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-def extraire_infos_livre(lien_livre):
+def extract_book_data(book_url):
     """
     Extrait les informations détaillées d'un livre depuis sa page produit.
 
@@ -283,7 +283,7 @@ def extraire_infos_livre(lien_livre):
     les champs nécessaires pour alimenter le fichier CSV.
 
     Args:
-        lien_livre (str): URL de la page produit du livre.
+        book_url (str): URL de la page produit du livre.
 
     Returns:
         dict | None: Dictionnaire contenant les informations du livre,
@@ -292,68 +292,68 @@ def extraire_infos_livre(lien_livre):
 
     try:
         # Récupération et analyse de la page produit
-        page = requests.get(lien_livre)
-        page.raise_for_status()
+        response = requests.get(book_url)
+        response.raise_for_status()
 
-        soup = BeautifulSoup(page.content, "html.parser")
+        soup = BeautifulSoup(response.content, "html.parser")
         
         # Extraction des informations présentes dans le tableau Product Information
         upc = extract_table_value(soup, "UPC")
-        prix_ttc = extract_table_value(soup, "Price (incl. tax)")
-        prix_ht = extract_table_value(soup, "Price (excl. tax)")
-        disponibilite = extract_table_value(soup, "Availability")
+        price_including_tax = extract_table_value(soup, "Price (incl. tax)")
+        price_excluding_tax = extract_table_value(soup, "Price (excl. tax)")
+        availability = extract_table_value(soup, "Availability")
 
-        titre = extract_text(soup.select_one("h1"))
+        title = extract_text(soup.select_one("h1"))
         description = extract_text(soup.select_one("#product_description ~ p"))
         
         # Nettoyage de la disponibilité pour ne garder que le nombre d'exemplaires
-        nombre_disponible = "".join(filter(str.isdigit, disponibilite))
+        number_available = "".join(filter(str.isdigit, availability))
         
-        # La catégorie est récupérée depuis le fil d'Ariane
-        fil_ariane = soup.select("ul.breadcrumb li a")
+        # La catégorie est récupérée depuis le fil d'Ariane (breadcrumb)
+        breadcrumb = soup.select("ul.breadcrumb li a")
 
-        if len(fil_ariane) >= 3:
-            categorie = fil_ariane[-1].get_text(strip=True)
+        if len(breadcrumb) >= 3:
+            category = breadcrumb[-1].get_text(strip=True)
         else:
-            categorie = ""
+            category = ""
         
         # La note est stockée dans une classe CSS, puis convertie en nombre
-        bloc_note = soup.select_one(".star-rating")
+        rating_block = soup.select_one(".star-rating")
 
-        if bloc_note:
-            classes_note = bloc_note.get("class", [])
+        if rating_block:
+            rating_classes = rating_block.get("class", [])
 
-            if len(classes_note) > 1:
-                note_texte = classes_note[1]
-                note = RATING_CONVERSION.get(note_texte, "")
+            if len(rating_classes) > 1:
+                rating_text = rating_classes[1]
+                rating = RATING_CONVERSION.get(rating_text, "")
             else:
-                note = ""
+                rating = ""
         else:
-            note = ""
+            rating = ""
 
-        image = soup.select_one(".carousel-inner img")
+        image_tag = soup.select_one(".carousel-inner img")
 
-        if image:
-            image_relative = image.get("src")
-            image_url = urljoin(lien_livre, image_relative) # Conversion de l'URL relative de l'image en URL complète
+        if image_tag:
+            relative_image = image_tag.get("src")
+            image_url = urljoin(book_url, relative_image) # Conversion de l'URL relative de l'image en URL complète
         else:
             image_url = ""
 
         return {
-            "product_page_url": lien_livre,
+            "product_page_url": book_url,
             "universal_product_code": upc,
-            "title": titre,
-            "price_including_tax": prix_ttc,
-            "price_excluding_tax": prix_ht,
-            "number_available": nombre_disponible,
+            "title": title,
+            "price_including_tax": price_including_tax,
+            "price_excluding_tax": price_excluding_tax,
+            "number_available": number_available,
             "product_description": description,
-            "category": categorie,
-            "review_rating": note,
+            "category": category,
+            "review_rating": rating,
             "image_url": image_url,
         }
 
-    except requests.exceptions.RequestException as erreur:
-        print(f"Erreur lors de la récupération du livre : {erreur}")
+    except requests.exceptions.RequestException as error:
+        print(f"Erreur lors de la récupération du livre : {error}")
         return None
 
 # -----------------------------------------------------------------------------
@@ -362,7 +362,7 @@ def extraire_infos_tous_livres(liens_livres_toutes_categories):
     Extrait les informations détaillées de plusieurs livres.
 
     La fonction parcourt une liste d'URL de livres et appelle
-    extraire_infos_livre() pour chaque livre.
+    extract_book_data() pour chaque livre.
 
     Args:
         liens_livres_toutes_categories (list): Liste des URL des pages de livres.
@@ -374,7 +374,7 @@ def extraire_infos_tous_livres(liens_livres_toutes_categories):
     infos_livres = []
 
     for lien_livre in liens_livres_toutes_categories:
-        infos_livre = extraire_infos_livre(lien_livre)
+        infos_livre = extract_book_data(lien_livre)
 
         if infos_livre:
             infos_livres.append(infos_livre)
