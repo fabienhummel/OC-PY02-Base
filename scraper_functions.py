@@ -54,7 +54,7 @@ from bs4 import BeautifulSoup
 # =============================================================================
 
 # Conversion des notes textuelles du site en valeurs numériques
-CONVERSION_NOTES = {
+RATING_CONVERSION = {
             "One": 1,
             "Two": 2,
             "Three": 3,
@@ -63,7 +63,7 @@ CONVERSION_NOTES = {
 }
 
 # En-têtes utilisés pour créer les fichiers CSV
-ENTETES_CSV = [
+CSV_HEADERS = [
     "product_page_url",
     "universal_product_code",
     "title",
@@ -325,7 +325,7 @@ def extraire_infos_livre(lien_livre):
 
             if len(classes_note) > 1:
                 note_texte = classes_note[1]
-                note = CONVERSION_NOTES.get(note_texte, "")
+                note = RATING_CONVERSION.get(note_texte, "")
             else:
                 note = ""
         else:
@@ -392,7 +392,7 @@ def sauvegarder_infos_livres_csv(infos_livres, dossier_export, nom_fichier):
 
     La fonction crée le dossier de destination si nécessaire, ajoute
     l'extension .csv au nom du fichier si elle est absente, puis écrit
-    les données avec les en-têtes définis dans ENTETES_CSV.
+    les données avec les en-têtes définis dans CSV_HEADERS.
 
     Args:
         infos_livres (list): Liste de dictionnaires contenant les informations des livres.
@@ -418,10 +418,10 @@ def sauvegarder_infos_livres_csv(infos_livres, dossier_export, nom_fichier):
     chemin_fichier = chemin_dossier / nom_fichier
 
     with open(chemin_fichier, "w", newline="", encoding="utf-8-sig") as fichier_csv:
-        # Écriture du fichier CSV avec les en-têtes définis dans la constante ENTETES_CSV
+        # Écriture du fichier CSV avec les en-têtes définis dans la constante CSV_HEADERS
         writer = csv.DictWriter(
             fichier_csv, 
-            fieldnames=ENTETES_CSV, 
+            fieldnames=CSV_HEADERS,
             delimiter=","
             )
         writer.writeheader()
