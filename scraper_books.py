@@ -16,7 +16,7 @@ Il utilise les fonctions définies dans scraper_functions.py pour :
 import argparse
 
 from scraper_functions import extract_category_links
-from scraper_functions import sauvegarder_csv_et_images_par_categorie
+from scraper_functions import save_csv_and_images_by_category
 
 
 # =============================================================================
@@ -69,7 +69,7 @@ def main():
     liens_categories = extract_category_links(BASE_URL)
 
     # Création des CSV et téléchargement des images
-    fichiers_csv = sauvegarder_csv_et_images_par_categorie(
+    fichiers_csv = save_csv_and_images_by_category(
         liens_categories,
         arguments.dossier_export
     )

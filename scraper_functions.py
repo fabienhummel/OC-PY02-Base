@@ -31,7 +31,7 @@ Organisation :
    - download_category_images()
 
 8. Export complet
-   - sauvegarder_csv_et_images_par_categorie()
+   - save_csv_and_images_by_category()
 """
 
 
@@ -507,7 +507,7 @@ def download_category_images(books_data, category_folder):
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-def sauvegarder_csv_et_images_par_categorie(liens_categories, dossier_export="export"):
+def save_csv_and_images_by_category(category_links, export_folder="export"):
     """
     Génère les exports CSV et images pour toutes les catégories.
 
@@ -520,44 +520,44 @@ def sauvegarder_csv_et_images_par_categorie(liens_categories, dossier_export="ex
     export/export_YYYYMMDD_HHMMSS/nom_categorie/images/
 
     Args:
-        liens_categories (list): Liste des URL des catégories.
-        dossier_export (str): Dossier racine des exports.
+        category_links (list): Liste des URL des catégories.
+        export_folder (str): Dossier racine des exports.
 
     Returns:
         list: Liste des chemins des fichiers CSV créés.
     """
 
-    fichiers_csv_crees = []
+    created_csv_files = []
 
     # Création d'un dossier d'export daté pour chaque exécution du script
-    date_heure = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    dossier_export_racine = Path(dossier_export)
-    dossier_export_date = dossier_export_racine / f"export_{date_heure}" # Création du chemin export/export_YYYYMMDD_HHMMSS
+    root_export_folder = Path(export_folder)
+    dated_export_folder = root_export_folder / f"export_{timestamp}" # Création du chemin export/export_YYYYMMDD_HHMMSS
 
     # Traitement d'une catégorie complète : liens, infos, CSV et images
-    for lien_categorie in liens_categories:
-        liens_livres_dune_categorie = extract_all_book_links_from_category(lien_categorie)
+    for category_link in category_links:
+        category_book_links = extract_all_book_links_from_category(category_link)
 
-        infos_livres = extract_all_books_data(liens_livres_dune_categorie)
+        books_data = extract_all_books_data(category_book_links)
 
-        if infos_livres:
-            nom_categorie = infos_livres[0]["category"] # Le nom de la catégorie sert à créer le dossier et le fichier CSV
-            nom_categorie_nettoye = sanitize_filename(nom_categorie)
+        if books_data:
+            category_name = books_data[0]["category"] # Le nom de la catégorie sert à créer le dossier et le fichier CSV
+            sanitized_category_name = sanitize_filename(category_name)
 
-            dossier_categorie = dossier_export_date / nom_categorie_nettoye
-            nom_fichier_csv = nom_categorie_nettoye + ".csv"
+            category_folder = dated_export_folder / sanitized_category_name
+            csv_filename = sanitized_category_name + ".csv"
 
             # Sauvegarde du CSV de la catégorie
-            chemin_csv = save_books_data_to_csv(
-                infos_livres,
-                dossier_categorie,
-                nom_fichier_csv
+            csv_path = save_books_data_to_csv(
+                books_data,
+                category_folder,
+                csv_filename
             )
 
-            download_category_images(infos_livres, dossier_categorie) # Téléchargement des images correspondant aux livres du CSV
+            download_category_images(books_data, category_folder) # Téléchargement des images correspondant aux livres du CSV
 
-            fichiers_csv_crees.append(chemin_csv)
+            created_csv_files.append(csv_path)
 
-    return fichiers_csv_crees
+    return created_csv_files
 
