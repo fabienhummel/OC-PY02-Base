@@ -1,5 +1,5 @@
 """
-mes_fonctions.py
+scraper_functions.py
 
 Ce fichier contient les fonctions utilisées par scraper_books.py.
 

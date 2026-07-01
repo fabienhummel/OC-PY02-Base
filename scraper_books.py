@@ -4,7 +4,7 @@ scraper_books.py
 Script principal du projet OC-PY02-Base.
 
 Ce fichier lance l'extraction complète des données depuis Books to Scrape.
-Il utilise les fonctions définies dans mes_fonctions.py pour :
+Il utilise les fonctions définies dans scraper_functions.py pour :
 
 1. récupérer les catégories ;
 2. parcourir les livres de chaque catégorie ;
@@ -15,8 +15,8 @@ Il utilise les fonctions définies dans mes_fonctions.py pour :
 
 import argparse
 
-from mes_fonctions import extraire_liens_categories
-from mes_fonctions import sauvegarder_csv_et_images_par_categorie
+from scraper_functions import extraire_liens_categories
+from scraper_functions import sauvegarder_csv_et_images_par_categorie
 
 
 # =============================================================================
