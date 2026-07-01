@@ -24,31 +24,33 @@ from scraper_functions import save_csv_and_images_by_category
 # =============================================================================
 
 BASE_URL = "https://books.toscrape.com/"
-DOSSIER_EXPORT_PAR_DEFAUT = "export"
+DEFAULT_EXPORT_FOLDER = "export"
 
 
 # =============================================================================
 # ARGUMENTS DE LA LIGNE DE COMMANDE
 # =============================================================================
 
-def creer_parseur_arguments():
+def create_argument_parser():
     """
     Crée le parseur d'arguments de la ligne de commande.
 
     Returns:
         argparse.ArgumentParser: Parseur contenant les options disponibles.
     """
-    parseur = argparse.ArgumentParser(
+    parser = argparse.ArgumentParser(
         description="Scraper Books to Scrape et générer un CSV par catégorie avec les images."
     )
 
-    parseur.add_argument(
+    parser.add_argument(
+        "--export-folder",
         "--dossier-export",
-        default=DOSSIER_EXPORT_PAR_DEFAUT,
+        dest="export_folder",
+        default=DEFAULT_EXPORT_FOLDER,
         help="Dossier racine où enregistrer les exports. Par défaut : export."
     )
 
-    return parseur
+    return parser
 
 
 # =============================================================================
@@ -62,23 +64,23 @@ def main():
     La fonction récupère les catégories du site, génère un fichier CSV par
     catégorie et télécharge les images correspondantes.
     """
-    parseur = creer_parseur_arguments()
-    arguments = parseur.parse_args()
+    parser = create_argument_parser()
+    args = parser.parse_args()
 
     # Récupération des liens de toutes les catégories
-    liens_categories = extract_category_links(BASE_URL)
+    category_links = extract_category_links(BASE_URL)
 
     # Création des CSV et téléchargement des images
-    fichiers_csv = save_csv_and_images_by_category(
-        liens_categories,
-        arguments.dossier_export
+    csv_files = save_csv_and_images_by_category(
+        category_links,
+        args.export_folder
     )
 
     # Affichage des fichiers CSV créés
-    for fichier_csv in fichiers_csv:
-        print(f"CSV créé : {fichier_csv}")
+    for csv_file in csv_files:
+        print(f"CSV créé : {csv_file}")
 
-    print(f"Nombre de fichiers CSV créés : {len(fichiers_csv)}")
+    print(f"Nombre de fichiers CSV créés : {len(csv_files)}")
 
 
 # =============================================================================
