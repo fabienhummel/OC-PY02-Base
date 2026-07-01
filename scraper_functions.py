@@ -21,7 +21,7 @@ Organisation :
 
 5. Extraction des informations des livres
    - extract_book_data()
-   - extraire_infos_tous_livres()
+   - extract_all_books_data()
 
 6. Sauvegarde CSV
    - sauvegarder_infos_livres_csv()
@@ -357,7 +357,7 @@ def extract_book_data(book_url):
         return None
 
 # -----------------------------------------------------------------------------
-def extraire_infos_tous_livres(liens_livres_toutes_categories):
+def extract_all_books_data(all_book_links):
     """
     Extrait les informations détaillées de plusieurs livres.
 
@@ -365,21 +365,21 @@ def extraire_infos_tous_livres(liens_livres_toutes_categories):
     extract_book_data() pour chaque livre.
 
     Args:
-        liens_livres_toutes_categories (list): Liste des URL des pages de livres.
+        all_book_links (list): Liste des URL des pages de livres.
 
     Returns:
         list: Liste de dictionnaires contenant les informations des livres.
     """
 
-    infos_livres = []
+    books_data = []
 
-    for lien_livre in liens_livres_toutes_categories:
-        infos_livre = extract_book_data(lien_livre)
+    for book_url in all_book_links:
+        book_data = extract_book_data(book_url)
 
-        if infos_livre:
-            infos_livres.append(infos_livre)
+        if book_data:
+            books_data.append(book_data)
 
-    return infos_livres
+    return books_data
 
 # =============================================================================
 # 6. SAUVEGARDE CSV
@@ -539,7 +539,7 @@ def sauvegarder_csv_et_images_par_categorie(liens_categories, dossier_export="ex
     for lien_categorie in liens_categories:
         liens_livres_dune_categorie = extract_all_book_links_from_category(lien_categorie)
 
-        infos_livres = extraire_infos_tous_livres(liens_livres_dune_categorie)
+        infos_livres = extract_all_books_data(liens_livres_dune_categorie)
 
         if infos_livres:
             nom_categorie = infos_livres[0]["category"] # Le nom de la catégorie sert à créer le dossier et le fichier CSV
