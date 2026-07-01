@@ -27,8 +27,8 @@ Organisation :
    - save_books_data_to_csv()
 
 7. Téléchargement des images
-   - telecharger_image()
-   - telecharger_images_categorie()
+   - download_image()
+   - download_category_images()
 
 8. Export complet
    - sauvegarder_csv_et_images_par_categorie()
@@ -435,7 +435,7 @@ def save_books_data_to_csv(books_data, export_folder, filename):
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-def telecharger_image(image_url, dossier_images, nom_image):
+def download_image(image_url, images_folder, image_filename):
     """
     Télécharge une image depuis son URL et l'enregistre localement.
 
@@ -443,32 +443,32 @@ def telecharger_image(image_url, dossier_images, nom_image):
 
     Args:
         image_url (str): URL complète de l'image à télécharger.
-        dossier_images (Path): Dossier où enregistrer l'image.
-        nom_image (str): Nom du fichier image à créer.
+        images_folder (Path): Dossier où enregistrer l'image.
+        image_filename (str): Nom du fichier image à créer.
 
     Returns:
         Path | None: Chemin de l'image téléchargée, ou None en cas d'erreur.
     """
 
     try:
-        dossier_images.mkdir(parents=True, exist_ok=True) # Création du dossier images si nécessaire
+        images_folder.mkdir(parents=True, exist_ok=True) # Création du dossier images si nécessaire
 
-        chemin_image = dossier_images / nom_image
+        image_path = images_folder / image_filename
 
-        reponse = requests.get(image_url)
-        reponse.raise_for_status()
+        response = requests.get(image_url)
+        response.raise_for_status()
 
-        with open(chemin_image, "wb") as fichier_image: # Ouverture du fichier en mode binaire pour écrire le contenu de l'image
-            fichier_image.write(reponse.content)
+        with open(image_path, "wb") as image_file: # Ouverture du fichier en mode binaire pour écrire le contenu de l'image
+            image_file.write(response.content)
 
-        return chemin_image
+        return image_path
 
-    except requests.exceptions.RequestException as erreur:
-        print(f"Erreur lors du téléchargement de l'image : {erreur}")
+    except requests.exceptions.RequestException as error:
+        print(f"Erreur lors du téléchargement de l'image : {error}")
         return None
     
 # -----------------------------------------------------------------------------
-def telecharger_images_categorie(infos_livres, dossier_categorie):
+def download_category_images(books_data, category_folder):
     """
     Télécharge les images de tous les livres d'une catégorie.
 
@@ -477,29 +477,29 @@ def telecharger_images_categorie(infos_livres, dossier_categorie):
     dans un dossier images.
 
     Args:
-        infos_livres (list): Liste de dictionnaires contenant les informations des livres.
-        dossier_categorie (Path): Dossier local de la catégorie.
+        books_data (list): Liste de dictionnaires contenant les informations des livres.
+        category_folder (Path): Dossier local de la catégorie.
 
     Returns:
         list: Liste des chemins des images téléchargées.
     """
 
-    images_telechargees = []
-    dossier_images = dossier_categorie / "images" # Les images d'une catégorie sont stockées dans un sous-dossier images
+    downloaded_images = []
+    images_folder = category_folder / "images" # Les images d'une catégorie sont stockées dans un sous-dossier images
 
-    for livre in infos_livres:
-        image_url = livre["image_url"]
-        upc = livre["universal_product_code"]
+    for book in books_data:
+        image_url = book["image_url"]
+        upc = book["universal_product_code"]
 
         extension = Path(urlparse(image_url).path).suffix
-        nom_image = upc + extension # L'UPC est utilisé comme nom de fichier car il est unique pour chaque livre
+        image_filename = upc + extension # L'UPC est utilisé comme nom de fichier car il est unique pour chaque livre
 
-        chemin_image = telecharger_image(image_url, dossier_images, nom_image)
+        image_path = download_image(image_url, images_folder, image_filename)
 
-        if chemin_image:
-            images_telechargees.append(chemin_image)
+        if image_path:
+            downloaded_images.append(image_path)
 
-    return images_telechargees
+    return downloaded_images
 
 
 # =============================================================================
@@ -555,7 +555,7 @@ def sauvegarder_csv_et_images_par_categorie(liens_categories, dossier_export="ex
                 nom_fichier_csv
             )
 
-            telecharger_images_categorie(infos_livres, dossier_categorie) # Téléchargement des images correspondant aux livres du CSV
+            download_category_images(infos_livres, dossier_categorie) # Téléchargement des images correspondant aux livres du CSV
 
             fichiers_csv_crees.append(chemin_csv)
 
